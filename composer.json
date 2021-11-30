@@ -23,6 +23,7 @@
     "codememory/database-pack": "^1.1",
     "codememory/fs": "^1.1",
     "codememory/global-config": "^1.1",
+    "codememory/service-provider": "^1.0",
     "ramsey/uuid": "^4.2"
   },
   "config": {

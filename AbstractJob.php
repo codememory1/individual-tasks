@@ -5,6 +5,7 @@ namespace Codememory\Components\IndividualTasks;
 use Codememory\Components\Database\Pack\DatabasePack;
 use Codememory\Components\Database\Pack\Workers\ConnectionWorker;
 use Codememory\Components\IndividualTasks\Interfaces\JobInterface;
+use Codememory\Container\ServiceProvider\Interfaces\ServiceProviderInterface;
 use PDO;
 use Ramsey\Uuid\Uuid;
 
@@ -34,14 +35,21 @@ abstract class AbstractJob implements JobInterface
     protected Utils $utils;
 
     /**
-     * @param DatabasePack $databasePack
+     * @var ServiceProviderInterface
      */
-    public function __construct(DatabasePack $databasePack)
+    private ServiceProviderInterface $serviceProvider;
+
+    /**
+     * @param DatabasePack             $databasePack
+     * @param ServiceProviderInterface $serviceProvider
+     */
+    public function __construct(DatabasePack $databasePack, ServiceProviderInterface $serviceProvider)
     {
 
         $this->connectionWorker = $databasePack->getConnectionWorker();
         $this->pdo = $this->connectionWorker->getConnector()->getConnection();
         $this->utils = new Utils();
+        $this->serviceProvider = $serviceProvider;
 
     }
 
@@ -67,5 +75,17 @@ abstract class AbstractJob implements JobInterface
      * @return mixed
      */
     abstract public function handler(array $parameters = []): mixed;
+
+    /**
+     * @param string $name
+     *
+     * @return object
+     */
+    protected function get(string $name): object
+    {
+
+        return $this->serviceProvider->get($name);
+
+    }
 
 }
