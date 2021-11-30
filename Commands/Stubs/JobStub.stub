@@ -1,0 +1,27 @@
+<?php
+
+namespace {namespace};
+
+use Codememory\Components\IndividualTasks\AbstractJob;
+
+/**
+ * Class {className}
+ *
+ * @package {namespace}
+ *
+ * @author  Codememory
+ */
+class {className} extends AbstractJob
+{
+
+    /**
+     * @inheritDoc
+     */
+    public function handler(array $parameters = []): mixed
+    {
+
+        return true;
+
+    }
+
+}
