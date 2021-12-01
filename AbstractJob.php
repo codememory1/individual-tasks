@@ -4,7 +4,6 @@ namespace Codememory\Components\IndividualTasks;
 
 use Codememory\Components\Database\Pack\DatabasePack;
 use Codememory\Components\Database\Pack\Workers\ConnectionWorker;
-use Codememory\Components\IndividualTasks\Interfaces\JobInterface;
 use Codememory\Container\ServiceProvider\Interfaces\ServiceProviderInterface;
 use PDO;
 use Ramsey\Uuid\Uuid;
@@ -16,7 +15,7 @@ use Ramsey\Uuid\Uuid;
  *
  * @author  Codememory
  */
-abstract class AbstractJob implements JobInterface
+abstract class AbstractJob
 {
 
     /**
@@ -55,26 +54,21 @@ abstract class AbstractJob implements JobInterface
 
     /**
      * @param array $parameters
+     * @param array $providerNames
      */
-    public function dispatch(array $parameters = []): void
+    public function dispatch(array $parameters = [], array $providerNames = []): void
     {
 
         $this->pdo
             ->prepare(sprintf('INSERT INTO `%s` (`name`, `uuid`, `payload`) VALUES (:name, :uuid, :payload)', $this->utils->getTableWithTasks()))
             ->execute([
-                'name'    => static::class,
-                'uuid'    => Uuid::uuid4()->toString(),
-                'payload' => json_encode($parameters)
+                'name'      => static::class,
+                'uuid'      => Uuid::uuid4()->toString(),
+                'payload'   => json_encode($parameters),
+                'providers' => json_encode($providerNames)
             ]);
 
     }
-
-    /**
-     * @param array $parameters
-     *
-     * @return mixed
-     */
-    abstract public function handler(array $parameters = []): mixed;
 
     /**
      * @param string $name

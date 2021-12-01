@@ -7,6 +7,7 @@ use Codememory\Components\Database\Pack\DatabasePack;
 use Codememory\Components\IndividualTasks\Interfaces\WorkerInterface;
 use Codememory\Components\IndividualTasks\Repository\JobRepository;
 use Codememory\Container\ServiceProvider\Interfaces\ServiceProviderInterface;
+use Generator;
 use JetBrains\PhpStorm\NoReturn;
 use PDO;
 
@@ -77,13 +78,21 @@ class Worker implements WorkerInterface
         pcntl_signal(SIGQUIT, [$this, 'signalCompleted']);
 
         while (true) {
-            foreach ($this->jobRepository->findAll() as $job) {
+            $providersForAllTasks = $this->getProvidersForAllTasks();
+
+            foreach ($this->iteration($this->jobRepository->findAll()) as $job) {
+                $taskProviders = [];
+
+                foreach (json_decode($job['providers'], true) as $provider) {
+                    $taskProviders[] = $providersForAllTasks[$provider];
+                }
+
                 $this->updateStatus(1);
 
                 $jobObject = new $job['name']($this->databasePack, $this->serviceProvider);
 
                 // Calling the job handler
-                $jobObject->handler(json_decode($job['payload'], true));
+                $jobObject->handler(json_decode($job['payload'], true), ...$taskProviders);
 
                 // Removing a completed job from a table
                 $this->deleteJob($job);
@@ -133,6 +142,40 @@ class Worker implements WorkerInterface
                 'key'   => 'status',
                 'value' => $status
             ]);
+
+    }
+
+    /**
+     * @param array $data
+     *
+     * @return Generator
+     */
+    private function iteration(array $data): Generator
+    {
+
+        foreach ($data as $value) {
+            yield $value;
+        }
+
+    }
+
+    /**
+     * @return array
+     */
+    private function getProvidersForAllTasks(): array
+    {
+
+        $providers = [];
+
+        foreach ($this->iteration($this->jobRepository->findAll()) as $job) {
+            foreach (json_decode($job['providers'], true) as $provider) {
+                if(!array_key_exists($provider, $providers)) {
+                    $providers[$provider] = $this->serviceProvider->get($provider);
+                }
+            }
+        }
+
+        return $providers;
 
     }
 
