@@ -6,6 +6,7 @@ use Codememory\Components\Console\IO;
 use Codememory\Components\Database\Pack\DatabasePack;
 use Codememory\Components\IndividualTasks\Interfaces\WorkerInterface;
 use Codememory\Components\IndividualTasks\Repository\JobRepository;
+use Codememory\Container\ServiceProvider\Interfaces\ServiceProviderInterface;
 use JetBrains\PhpStorm\NoReturn;
 use PDO;
 
@@ -40,9 +41,15 @@ class Worker implements WorkerInterface
     private JobRepository $jobRepository;
 
     /**
-     * @param DatabasePack $databasePack
+     * @var ServiceProviderInterface
      */
-    public function __construct(DatabasePack $databasePack)
+    private ServiceProviderInterface $serviceProvider;
+
+    /**
+     * @param DatabasePack             $databasePack
+     * @param ServiceProviderInterface $serviceProvider
+     */
+    public function __construct(DatabasePack $databasePack, ServiceProviderInterface $serviceProvider)
     {
 
         $connector = $databasePack->getConnectionWorker()->getConnector();
@@ -50,6 +57,7 @@ class Worker implements WorkerInterface
         $this->utils = new Utils();
         $this->databasePack = $databasePack;
         $this->jobRepository = new JobRepository($connector, $this->utils);
+        $this->serviceProvider = $serviceProvider;
 
     }
 
@@ -70,14 +78,9 @@ class Worker implements WorkerInterface
 
         while (true) {
             foreach ($this->jobRepository->findAll() as $job) {
-                $this->pdo
-                    ->prepare(sprintf('UPDATE `%s` SET `key` = :key, `value` = :value', $this->utils->getTableWithInfo()))
-                    ->execute([
-                        'key'   => 'status',
-                        'value' => 1
-                    ]);
+                $this->updateStatus(1);
 
-                $jobObject = new $job['name']($this->databasePack);
+                $jobObject = new $job['name']($this->databasePack, $this->serviceProvider);
 
                 // Calling the job handler
                 $jobObject->handler(json_decode($job['payload'], true));
@@ -96,12 +99,7 @@ class Worker implements WorkerInterface
     private function signalCompleted(): void
     {
 
-        $this->pdo
-            ->prepare(sprintf('UPDATE `%s` SET `key` = :key, `value` = :value', $this->utils->getTableWithInfo()))
-            ->execute([
-                'key'   => 'status',
-                'value' => 0
-            ]);
+        $this->updateStatus(0);
 
         exit;
 
@@ -118,6 +116,23 @@ class Worker implements WorkerInterface
         $this->pdo
             ->prepare(sprintf('DELETE FROM `%s` WHERE `id` = :id', $this->utils->getTableWithTasks()))
             ->execute(['id' => $jobData['id']]);
+
+    }
+
+    /**
+     * @param int $status
+     *
+     * @return void
+     */
+    private function updateStatus(int $status): void
+    {
+
+        $this->pdo
+            ->prepare(sprintf('UPDATE `%s` SET `key` = :key, `value` = :value', $this->utils->getTableWithInfo()))
+            ->execute([
+                'key'   => 'status',
+                'value' => $status
+            ]);
 
     }
 
