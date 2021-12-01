@@ -48,7 +48,6 @@ class CreateTablesCommand extends AbstractCommand
                 `name` VARCHAR(100) NOT NULL,
                 `uuid` VARCHAR(36) NOT NULL,
                 `payload` JSON NULL DEFAULT NULL,
-                `providers` JSON NULL DEFAULT NULL,
                 `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
             );
             CREATE TABLE IF NOT EXISTS `{$utils->getTableWithInfo()}` (
