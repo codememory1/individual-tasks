@@ -3,8 +3,6 @@ declare(ticks=1);
 
 namespace Codememory\Components\IndividualTasks\Commands;
 
-use Codememory\Components\Database\Connection\Interfaces\ConnectionInterface;
-use Codememory\Components\Database\Connection\Interfaces\ConnectorInterface;
 use Codememory\Components\Database\Orm\Commands\AbstractCommand;
 use Codememory\Components\Database\Pack\DatabasePack;
 use Codememory\Components\IndividualTasks\Worker;
@@ -39,18 +37,26 @@ class WorkerCommand extends AbstractCommand
     private ServiceProviderInterface $serviceProvider;
 
     /**
-     * @param ConnectorInterface       $connector
-     * @param ConnectionInterface      $connection
+     * @var DatabasePack
+     */
+    private DatabasePack $databasePack;
+
+    /**
+     * @param DatabasePack             $databasePack
      * @param ServiceProviderInterface $serviceProvider
      *
      * @throws Exception
      */
-    public function __construct(ConnectorInterface $connector, ConnectionInterface $connection, ServiceProviderInterface $serviceProvider)
+    public function __construct(DatabasePack $databasePack, ServiceProviderInterface $serviceProvider)
     {
+
+        $connector = $databasePack->getConnectionWorker()->getConnector();
+        $connection = $databasePack->getConnectionWorker()->getConnection();
 
         parent::__construct($connector, $connection);
 
         $this->serviceProvider = $serviceProvider;
+        $this->databasePack = $databasePack;
 
     }
 
@@ -60,7 +66,7 @@ class WorkerCommand extends AbstractCommand
     protected function handler(InputInterface $input, OutputInterface $output): int
     {
 
-        $worker = new Worker(new DatabasePack($this->connection), $this->serviceProvider);
+        $worker = new Worker($this->databasePack, $this->serviceProvider);
 
         $worker->daemon($this->io);
 
